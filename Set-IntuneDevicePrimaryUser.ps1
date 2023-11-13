@@ -15,21 +15,21 @@ Notes:
     - The most-frequently signed-in user could not be determined, e.g. there are no sign-in events to Windows
     - The most-frequently signed-in user doesn't exist in Azure AD
 
-.PARAMETER DevicesCsvInputFilePath
+.PARAMETER DevicesInputFilePath
 A comma-separated value file with 2 column headers: DeviceId and DisplayName. Example:
     DeviceId,DisplayName
     0159b6fb-89a7-4bf1-abf8-cc178be41a7a,Laptop-001
     8b8b5c16-91b0-4b4e-8225-247c8a43da6a,Desktop-020
 
 .EXAMPLE
-.\Set-IntuneDevicePrimaryUser.ps1 -DevicesCsvInputFilePath "~\Documents\Devices.csv"
+.\Set-IntuneDevicePrimaryUser.ps1 -DevicesInputFilePath "~\Documents\Devices.csv"
 #>
 
 [CmdletBinding()]
 param (
   [String]
   [Parameter(Mandatory, Position=0)]
-  $DevicesCsvInputFilePath
+  $DevicesInputFilePath
 )
 
 # The script will stop execution upon encountering any errors
@@ -42,10 +42,10 @@ $ErrorActionPreference = 'Stop'
 #
 
 # Verify that the Csv input file path is valid
-Get-Item -Path $DevicesCsvInputFilePath
+Get-Item -Path $DevicesInputFilePath
 
 # Import the contents of the Csv file into a collection of PSCustomObject objects
-$AllDevices = Import-Csv -Path $DevicesCsvInputFilePath
+$AllDevices = Import-Csv -Path $DevicesInputFilePath
 
 # Retrieve the note properties (static properties) of the PSCustomObject objects
 $ColumnHeaders = $AllDevices | Get-Member -MemberType NoteProperty | Sort-Object -Property Name
