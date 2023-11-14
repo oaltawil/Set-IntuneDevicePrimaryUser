@@ -13,7 +13,7 @@ Notes:
 - The script will skip a device if any of the following conditions happen:
     - The device is not managed by Intune
     - The most-frequently signed-in user could not be determined, e.g. there are no sign-in events to Windows
-    - The most-frequently signed-in user doesn't exist in Azure AD
+    - The most-frequently signed-in user does not exist in Azure AD
 
 .PARAMETER DevicesInputFilePath
 A comma-separated value file with 2 column headers: DeviceId and DisplayName. Example:
