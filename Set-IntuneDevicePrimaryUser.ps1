@@ -41,6 +41,10 @@ param (
 # The script will stop execution upon encountering any errors
 $ErrorActionPreference = 'Stop'
 
+#
+# Configure the Output Csv file 
+#
+
 # Retrieve the parent directory containing the script
 $WorkingDirectoryPath = Split-Path -Path $MyInvocation.MyCommand.Path -Parent
 
@@ -89,19 +93,17 @@ $AllSignInLogs = Get-MgAuditLogSignIn -All -Filter "appDisplayName eq 'Windows S
 
 foreach ($Device in $AllDevices) {
 
-    #
-    #
-    # Verify that the device is managed by Intune
-    #
-    #
-
     # Save the Device Display Name
     $DisplayName = $Device.DisplayName
 
-    # Save the Azure AD Device Id
+    # Save the Intune Device Id
     $IntuneDeviceId = $Device.IntuneDeviceId
 
     Write-Host "`nProcessing Device $DisplayName"
+
+    #
+    # Verify that the device is managed by Intune
+    #
     
     # Retrieve the Intune managed device using its Intune Device Id
     $ManagedDevice = Get-MgDeviceManagementManagedDevice -ManagedDeviceId $IntuneDeviceId
@@ -116,6 +118,7 @@ foreach ($Device in $AllDevices) {
     }
     else {
 
+        # Retrieve the Azure AD Device Id
         $AzureADDeviceId = $ManagedDevice.AzureAdDeviceId
     }
 
