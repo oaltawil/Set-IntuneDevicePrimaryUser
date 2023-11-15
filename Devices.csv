@@ -1,4 +1,4 @@
-DeviceId,DisplayName
-8f4bebc5-e49b-4834-a89c-1e54cdc2e284,CloudDev-001
-7cb6819a-18d5-4bdb-9f19-982f11193d75,Device-001
-650dab11-0f76-491f-80f3-248b02c41873,Device-002
+IntuneDeviceId,DisplayName
+7966e55f-9960-4644-9bc2-5b0bb2fd07ad,CloudDev-001
+965b89c8-a279-4095-a931-ca8403c6b0d7,Device-001
+e75d641b-c987-446b-9d27-af7c0a7b6ba9,Device-002
