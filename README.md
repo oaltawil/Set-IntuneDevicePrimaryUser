@@ -7,10 +7,11 @@ The Set-IntuneDevicePrimaryUser.ps1 script configures the primary user of an Int
 2. The script retrieves all the Sign In Audit logs for the "Windows Sign In" application for the last 30 days.
 3. For each device, the script determines the user with the highest number of sign-ins to Windows.
 4. The script compares and updates the Intune device's primary user to the most frequently signed-in user.
+5. The script creates a Csv file in the same folder as the script titled "IntuneDevices-PrimaryUsers-<Date>" with the following details: "IntuneDeviceId,DisplayName,PreviousPrimaryUser,NewPrimaryUser,Modified"
 
 Notes:
-- Please note that the script uses the Intune Device Id - and not the Display Name - when filtering the Sign In Logs and when configuring the Intune device.
+- If the most-frequently signed-in user could not be determined, e.g. there are no sign-in events to Windows, the script will return "Failed" for the NewPrimaryUser field in the output file and won't make any changes.
+- If the device does not have a primary user, the script will use "None" for the PreviousPrimaryUser field
 - The script will skip a device if any of the following conditions happen:
     - The device is not managed by Intune
-    - The most-frequently signed-in user could not be determined, e.g. there are no sign-in events to Windows
     - The most-frequently signed-in user does not exist in Azure AD
