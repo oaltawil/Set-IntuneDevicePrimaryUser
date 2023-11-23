@@ -9,7 +9,7 @@ The Set-IntuneDevicePrimaryUser.ps1 script configures the primary user of an Int
 4. The script compares and updates the Intune device's primary user to the most frequently signed-in user.
 
 Notes:
-- Please note that the script uses the Device Id - and not the Display Name - when filtering the Sign In Logs and when configuring the Intune device.
+- Please note that the script uses the Intune Device Id - and not the Display Name - when filtering the Sign In Logs and when configuring the Intune device.
 - The script will skip a device if any of the following conditions happen:
     - The device is not managed by Intune
     - The most-frequently signed-in user could not be determined, e.g. there are no sign-in events to Windows
