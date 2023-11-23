@@ -7,7 +7,7 @@ In no event shall Microsoft, its authors, or anyone else involved in the creatio
 The Set-IntuneDevicePrimaryUser.ps1 script configures the primary user of an Intune device to the user with the highest number of sign-ins to the device.
 
 .DESCRIPTION
-1. The script requires the name of a Group that contains Intune Devices or a comma-separated value file with 2 column headers: DeviceId and DisplayName, where Device Id is the Intune Device Id.
+1. The script requires the name of a Group that contains Intune Devices or a comma-separated value file with 2 column headers: IntuneDeviceId and DisplayName.
 2. The script retrieves all the Sign In Audit logs for the "Windows Sign In" application for the last 30 days
 3. For each device, the script determines the user with the highest number of sign-ins to Windows.
 4. The script compares and updates the Intune device's primary user to the most frequently signed-in user.
@@ -30,10 +30,10 @@ A comma-separated value file with 2 column headers: DeviceId and DisplayName. Ex
     8b8b5c16-91b0-4b4e-8225-247c8a43da6a,Desktop-020
 
 .EXAMPLE
-.\Set-IntuneDevicePrimaryUser.ps1 -InputFilePath "~\Documents\Devices.csv"
+.\Set-IntuneDevicePrimaryUser.ps1 -GroupName "FLW Laptops"
 
 .EXAMPLE
-.\Set-IntuneDevicePrimaryUser.ps1 -GroupName "FLW Laptops"
+.\Set-IntuneDevicePrimaryUser.ps1 -InputFilePath "~\Documents\Devices.csv"
 #>
 
 [CmdletBinding(DefaultParameterSetName = 'GroupName')]
