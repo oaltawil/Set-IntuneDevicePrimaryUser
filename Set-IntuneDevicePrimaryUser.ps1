@@ -62,7 +62,7 @@ Connect-MgGraph -Scopes AuditLog.Read.All, User.Read.All, DeviceManagementManage
 $WorkingDirectoryPath = Split-Path -Path $MyInvocation.MyCommand.Path -Parent
 
 # Generate the output file name
-$OutputFileName = "IntuneDevices-PrimaryUsers-$((Get-Date).ToShortDateString())"
+$OutputFileName = "IntuneDevices-PrimaryUsers-$((Get-Date).ToShortDateString())" + ".csv"
 
 # Join the script's parent folder with the output file name
 $OutputFilePath = Join-Path -Path $WorkingDirectoryPath -ChildPath $OutputFileName
