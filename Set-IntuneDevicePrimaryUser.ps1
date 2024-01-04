@@ -295,6 +295,8 @@ foreach ($Device in $AllDevices) {
 
                 $ErrorMessage = $ErrorMessageToken.Split(' - Operation ID')[0]
 
+                Write-Warning $ErrorMessage
+
                 $Modified = "No"
 
             }

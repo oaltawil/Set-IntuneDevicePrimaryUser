@@ -1,0 +1,5 @@
+IntuneDeviceId,DisplayName,CurrentPrimaryUser,NewPrimaryUser,Modified,ErrorMessage
+09e3a3a3-afbc-4c83-954f-19d162242e18,rdsh-0,oaltawil@poltis.ca,Failed,No,Failed to discover the most frequent user for rdsh-0 (the device had no 'Windows Sign In' entries).
+eb843348-59c0-48fa-a2ee-b0ad9c4d4e3a,vdesktop-0,None,Failed,No,Failed to discover the most frequent user for vdesktop-0 (the device had no 'Windows Sign In' entries).
+a6b42339-e8c8-4cd7-87a6-2dda2682d2a5,rdsh-1,sabah@poltis.ca,Failed,No,Failed to discover the most frequent user for rdsh-1 (the device had no 'Windows Sign In' entries).
+2fc787e3-02b8-4a03-b47b-1ab8c675a6e6,vdesktop-1,None,oaltawil@poltis.ca,No,CheckDeviceEligableForPrimaryUserChange, device 2fc787e3-02b8-4a03-b47b-1ab8c675a6e6 is a windows multi-session device. You can only modify Primary User for single-session SKUs
