@@ -68,7 +68,7 @@ $OutputFileName = "IntuneDevices-PrimaryUsers-" + $(Get-Date -Format "MM-dd-yyyy
 $OutputFilePath = Join-Path -Path $WorkingDirectoryPath -ChildPath $OutputFileName
 
 # The first line of the output file contains the column headers of the Csv file
-Set-Content -Path $OutputFilePath -Value "IntuneDeviceId,DisplayName,CurrentPrimaryUser,NewPrimaryUser,Modified"
+Set-Content -Path $OutputFilePath -Value "IntuneDeviceId,DisplayName,CurrentPrimaryUser,NewPrimaryUser,Modified,ErrorMessage"
 
 #
 #
@@ -215,16 +215,22 @@ foreach ($Device in $AllDevices) {
         # Verify that the most frequent user has a valid Azure AD User object
         if (-not $MostFrequentUser) {
     
-            Write-Warning "Unable to find the Azure AD User '$MostFrequentUserUpn'."
+            $ErrorMessage = "The most frequent user '$MostFrequentUserUpn' for $DisplayName does not exist."
 
-            Continue
+            Write-Warning $ErrorMessage
+
+            $MostFrequentUserUpn = "Failed"
+
+
         }
 
     }
     # Failed to determine the user who signed-in the most to the device
     else {
 
-        Write-Warning "Failed to discover the most frequent user for $DisplayName (the device had no 'Windows Sign In' entries)."
+        $ErrorMessage = "Failed to discover the most frequent user for $DisplayName (the device had no 'Windows Sign In' entries)."
+
+        Write-Warning $ErrorMessage
 
         $MostFrequentUserUpn = "Failed"
     }
@@ -260,19 +266,45 @@ foreach ($Device in $AllDevices) {
     if ($MostFrequentUserUpn -eq $PrimaryUserUpn) 
     {
         $Modified = "No"
+
+        $ErrorMessage = "The most frequently-signed user is already configured as the primary user"
     }
     # The most frequent user and the primary user are different and the most frequent user has been determined
     elseif ($MostFrequentUserUpn -ne "Failed") 
     {
-        $Modified = "Yes"
-        
+
         # Generate the Http REST API call by defining its URI, Body, and Method
         $Uri = "https://graph.microsoft.com/beta/deviceManagement/managedDevices('$IntuneDeviceId')/users/`$ref"
         $Body = @{ "@odata.id" = "https://graph.microsoft.com/beta/users/$($MostFrequentUser.Id)" } | ConvertTo-Json
         $Method = "POST"
 
-        Invoke-MgGraphRequest -Method $Method -Uri $Uri -Body $Body
+        $Error.PSBase.Clear()
 
+        try {
+
+            Invoke-MgGraphRequest -Method $Method -Uri $Uri -Body $Body -ErrorAction Continue
+
+        }
+        catch {
+
+            if ($Error[0]) {
+
+                $ErrorMessageDetails = $Error[0].ErrorDetails.Message
+
+                $ErrorMessageToken = $ErrorMessageDetails.Split('\"Message\": \"')[1]
+
+                $ErrorMessage = $ErrorMessageToken.Split(' - Operation ID')[0]
+
+                $Modified = "No"
+
+            }
+            else {
+
+                $Modified = "Yes"
+
+            }
+
+        }
     }
     # The most frequent user was not determined
     else 
@@ -281,6 +313,6 @@ foreach ($Device in $AllDevices) {
     }
 
     # Add a record to the Csv Output file with the details
-    Add-Content -Path $OutputFilePath -Value "$IntuneDeviceId,$DisplayName,$PrimaryUserUpn,$MostFrequentUserUpn,$Modified"
+    Add-Content -Path $OutputFilePath -Value "$IntuneDeviceId,$DisplayName,$PrimaryUserUpn,$MostFrequentUserUpn,$Modified,$ErrorMessage"
 
 }
