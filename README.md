@@ -15,4 +15,4 @@ Notes:
 - The script will skip a device if any of the following conditions happen:
     - The device is not managed by Intune
     - The most-frequently signed-in user does not exist in Azure AD
-- A new field called ErrorMessage has been added to the output file to log all of the above conditions in addition to any unhandled exceptions, e.g. when setting the primary user of a multi-session Windows 10/11 computer. 
+- A new field called ErrorMessage has been added to the output file to log the above conditions in addition to unhandled exceptions, e.g., setting the primary user of a multi-session Windows 10/11 computer.
