@@ -49,7 +49,7 @@ param (
 $ErrorActionPreference = 'Stop'
 
 # Connect to Microsoft Graph and request the ability to read Audit logs and Users and modify Intune Devices
-Connect-MgGraph -Scopes AuditLog.Read.All, User.Read.All, DeviceManagementManagedDevices.ReadWrite.All, Group.Read.All, GroupMember.Read.All, Device.Read.All -NoWelcome
+Connect-MgGraph -Scopes AuditLog.Read.All, User.Read.All, DeviceManagementManagedDevices.ReadWrite.All, Group.Read.All, GroupMember.Read.All, Device.Read.All -NoWelcome -ClientTimeout 300
 
 #
 #
@@ -112,7 +112,7 @@ if ($GroupName) {
 
     if (-not $Group){
 
-        Write-Error "`nUnable to find an Azure AD group named '$GroupName'."
+        Write-Error "`nUnable to find an Azure AD group named '$GroupName'. Run 'Get-MgGroup' for the list of available groups"
     }
 
     # Retrieve all Device members of the Group
@@ -140,10 +140,12 @@ if ($GroupName) {
         # If the device is not managed by Intune, print a warning and skip to the next device
         if (-not $ManagedDevice) {
     
-            Write-Warning "`nFailed to retrieve the Intune managed device with Display Name $DisplayName and Azure AD Device ID $AzureAdDeviceId."
+            $ErrorMessage =  "Device '$DisplayName' is not managed by Intune."
+
+            Write-Warning $ErrorMessage
+
+            Add-Content -Path $OutputFilePath -Value "N/A,$DisplayName,N/A,N/A,No,$ErrorMessage"
     
-            # Skip this particular device and move on to the next one
-            Continue
         }
         else {
 
@@ -152,18 +154,48 @@ if ($GroupName) {
                 DisplayName = $DisplayName
             }
 
-        }
+            $AllDevices += $Device
 
-        $AllDevices += $Device
+        }
     
     }
 
 }
 
-Write-Host "`nRetrieving the last 30 days of Azure AD Audit Sign-In Logs for the 'Windows Sign In' application.`nThis command will take several minutes to complete..."
 
-# Retrieve all the sign-in events to Windows
-$AllSignInLogs = Get-MgAuditLogSignIn -All -Filter "appDisplayName eq 'Windows Sign In'"
+#
+#
+# Retrieve the Windows Sign-In Events from the Azure AD Audit Logs
+#
+#
+
+# Retrieve the sign-in events only if there are devices to process
+if ($AllDevices.count -ge 1) {
+
+    Write-Host "`nRetrieving the last 30 days of Interactive User Sign-In Events to Windows. This command will take up to 5 minutes to complete."
+
+    # Retrieve all the "Interactive User" Sign-In events to Windows
+    $InteractiveUserSignInLogs = Get-MgAuditLogSignIn -Filter "appDisplayName eq 'Windows Sign In'"
+
+    <#
+    Write-Host "Installing the Microsoft Graph Beta Reports PowerShell Module"
+
+    # Install the Beta version of the Microsoft Graph Reports PS module
+    Install-Module Microsoft.Graph.Beta.Reports -Repository PSGallery -Scope CurrentUser -AllowClobber -AllowPrerelease -AcceptLicense -SkipPublisherCheck -Force -Confirm:$false
+
+    Write-Host "`nRetrieving the last 30 days of Non-Interactive User Sign-In Events to Windows. This command will take up to 5 minutes to complete."
+
+    # Retrieve all the "Non-Interactive User" Sign-In events to Windows
+    $NonInteractiveUserSignInLogs = Get-MgBetaAuditLogSignIn -Filter "signInEventTypes/any(t:t eq 'nonInteractiveUser') and appDisplayName eq 'Windows Sign In'"
+
+    #>
+}
+
+#
+#
+# Iterate through each device and process the Primary User change
+#
+#
 
 foreach ($Device in $AllDevices) {
 
@@ -187,8 +219,12 @@ foreach ($Device in $AllDevices) {
     # If the device is not managed by Intune, print a warning and skip to the next device
     if (-not $ManagedDevice) {
 
-        Write-Warning "`nFailed to retrieve the Intune managed device with Display Name $DisplayName and Intune Device ID $IntuneDeviceId."
-
+        $ErrorMessage = "Device '$DisplayName' is not managed Intune."
+       
+        Write-Warning $ErrorMessage
+        
+        Add-Content -Path $OutputFilePath -Value "$IntuneDeviceId,$DisplayName,N/A,N/A,No,$ErrorMessage"
+        
         # Skip this particular device and move on to the next one
         Continue
     }
@@ -203,8 +239,17 @@ foreach ($Device in $AllDevices) {
     #
     #
 
-    # Filter the Sign-In Logs for the Azure AD Device Id
-    $DeviceSignInLogs = $AllSignInLogs | Where-Object {$_.DeviceDetail.DeviceId -eq $AzureADDeviceId}
+    # Filter the Interactive User Sign-In Logs for the Azure AD Device Id
+    $DeviceSignInLogs = $InteractiveUserSignInLogs | Where-Object {$_.DeviceDetail.DeviceId -eq $AzureADDeviceId}
+
+    <#
+    # If there are no interactive sign-ins, then check the non-interactive ones
+    if (-not $DeviceSignInLogs) {
+
+        $DeviceSignInLogs = $NonInteractiveUserSignInLogs | Where-Object {$_.DeviceDetail.DeviceId -eq $AzureADDeviceId}
+       
+    }
+    #>
 
     # Group the Sign-In Events by the User Principal Name and sort the groups by the number of elements they contain (Count)
     $MostFrequentUserUpn = $DeviceSignInLogs | Where-Object {$_.UserPrincipalName} | Group-Object -Property UserPrincipalName -NoElement | Sort-Object -Descending -Property Count | Select-Object -First 1 | ForEach-Object {$_.Name}
@@ -218,7 +263,7 @@ foreach ($Device in $AllDevices) {
         # Verify that the most frequent user has a valid Azure AD User object
         if (-not $MostFrequentUser) {
     
-            $ErrorMessage = "The most frequent user $MostFrequentUserUpn for $DisplayName does not exist."
+            $ErrorMessage = "The most frequent user $MostFrequentUserUpn for $DisplayName no longer exists in Azure AD"
 
             Write-Warning $ErrorMessage
 
@@ -231,7 +276,7 @@ foreach ($Device in $AllDevices) {
     # Failed to determine the user who signed-in the most to the device
     else {
 
-        $ErrorMessage = "Failed to discover the most frequent user for $DisplayName (the device had no 'Windows Sign In' entries)"
+        $ErrorMessage = "Failed to discover the most frequent user for $DisplayName (the device did not have any Interactive User Sign-In events to Windows)"
 
         Write-Warning $ErrorMessage
 
@@ -285,7 +330,7 @@ foreach ($Device in $AllDevices) {
 
         try {
 
-            Invoke-MgGraphRequest -Method $Method -Uri $Uri -Body $Body
+            Invoke-MgGraphRequest -Method $Method -Uri $Uri -Body $Body -ErrorAction Continue
 
         }
         catch {
@@ -298,6 +343,8 @@ foreach ($Device in $AllDevices) {
 
                 $ErrorMessage = $ErrorMessageToken.Split(' - Operation ID')[0]
 
+                $ErrorMessage = $ErrorMessage.Replace(',','')
+                
                 Write-Warning $ErrorMessage
 
                 $Modified = "No"
