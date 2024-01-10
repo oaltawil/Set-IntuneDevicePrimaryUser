@@ -331,38 +331,22 @@ foreach ($Device in $AllDevices) {
         $Method = "POST"
 
         $Error.PSBase.Clear()
+        
+        Invoke-MgGraphRequest -Method $Method -Uri $Uri -Body $Body -ErrorAction SilentlyContinue
 
-        try {
-
-            Invoke-MgGraphRequest -Method $Method -Uri $Uri -Body $Body -ErrorAction Continue
-
+         if ($Error[0]) {
+           $ErrorMessageDetails = $Error[0].ErrorDetails.Message     
+           $ErrorMessageToken = $ErrorMessageDetails.Split('\"Message\": \"')[1]
+           $ErrorMessage = $ErrorMessageToken.Split(' - Operation ID')[0]
+           $ErrorMessage = $ErrorMessage.Replace(',','')
+           Write-Warning $ErrorMessage
+           $Modified = "No"
         }
-        catch {
-
-            if ($Error[0]) {
-
-                $ErrorMessageDetails = $Error[0].ErrorDetails.Message
-
-                $ErrorMessageToken = $ErrorMessageDetails.Split('\"Message\": \"')[1]
-
-                $ErrorMessage = $ErrorMessageToken.Split(' - Operation ID')[0]
-
-                $ErrorMessage = $ErrorMessage.Replace(',','')
-                
-                Write-Warning $ErrorMessage
-
-                $Modified = "No"
-
-            }
-            else {
-
-                Write-Host "Successfully configured the primary user for $DisplayName to $MostFrequentUserUpn"
-
-                $Modified = "Yes"
-                
-            }
-
+        else {
+          Write-Host "Successfully configured the primary user for $DisplayName to $MostFrequentUserUpn"
+          $Modified = "Yes"
         }
+     
     }
     # The most frequent user was not determined
     else 
