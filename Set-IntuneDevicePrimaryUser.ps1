@@ -343,7 +343,8 @@ foreach ($Device in $AllDevices) {
            $Modified = "No"
         }
         else {
-          Write-Host "Successfully configured the primary user for $DisplayName to $MostFrequentUserUpn"
+          $ErrorMessage = "Successfully configured the primary user for $DisplayName to $MostFrequentUserUpn"
+          Write-Host $ErrorMessage
           $Modified = "Yes"
         }
      
