@@ -177,7 +177,6 @@ if ($AllDevices.count -ge 1) {
     # Retrieve all the "Interactive User" Sign-In events to Windows
     $InteractiveUserSignInLogs = Get-MgAuditLogSignIn -Filter "appDisplayName eq 'Windows Sign In'"
 
-    <#
     Write-Host "Installing the Microsoft Graph Beta Reports PowerShell Module"
 
     # Install the Beta version of the Microsoft Graph Reports PS module
@@ -188,7 +187,6 @@ if ($AllDevices.count -ge 1) {
     # Retrieve all the "Non-Interactive User" Sign-In events to Windows
     $NonInteractiveUserSignInLogs = Get-MgBetaAuditLogSignIn -Filter "signInEventTypes/any(t:t eq 'nonInteractiveUser') and appDisplayName eq 'Windows Sign In'"
 
-    #>
 }
 
 #
@@ -242,14 +240,12 @@ foreach ($Device in $AllDevices) {
     # Filter the Interactive User Sign-In Logs for the Azure AD Device Id
     $DeviceSignInLogs = $InteractiveUserSignInLogs | Where-Object {$_.DeviceDetail.DeviceId -eq $AzureADDeviceId}
 
-    <#
     # If there are no interactive sign-ins, then check the non-interactive ones
     if (-not $DeviceSignInLogs) {
 
         $DeviceSignInLogs = $NonInteractiveUserSignInLogs | Where-Object {$_.DeviceDetail.DeviceId -eq $AzureADDeviceId}
        
     }
-    #>
 
     # Group the Sign-In Events by the User Principal Name and sort the groups by the number of elements they contain (Count)
     $MostFrequentUserUpn = $DeviceSignInLogs | Where-Object {$_.UserPrincipalName} | Group-Object -Property UserPrincipalName -NoElement | Sort-Object -Descending -Property Count | Select-Object -First 1 | ForEach-Object {$_.Name}
