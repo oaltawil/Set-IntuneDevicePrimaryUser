@@ -18,6 +18,10 @@ The Set-IntuneDevicePrimaryUser.ps1 script configures the primary user of an Int
 Notes:
 - If the most-frequently signed-in user could not be determined, e.g. there are no sign-in events to Windows, or the user no longer exists in Azure AD, the script will return "Failed" for the NewPrimaryUser field in the output file and won't make any changes.
 - If the device does not have a primary user, the script will use "None" for the CurrentPrimaryUser field
+- The script will skip a device if any of the following conditions happen:
+  - The device is not managed by Intune
+  - The most-frequently signed-in user does not exist in Azure AD
+-A new field called ErrorMessage has been added to the output file to log the above conditions in addition to unhandled exceptions, e.g., setting the primary user of a multi-session Windows 10/11 compute
 
 .PARAMETER GroupName
 The name of a Group that contains Intune devices
@@ -323,38 +327,23 @@ foreach ($Device in $AllDevices) {
         $Method = "POST"
 
         $Error.PSBase.Clear()
+        
+        Invoke-MgGraphRequest -Method $Method -Uri $Uri -Body $Body -ErrorAction SilentlyContinue
 
-        try {
-
-            Invoke-MgGraphRequest -Method $Method -Uri $Uri -Body $Body -ErrorAction Continue
-
+         if ($Error[0]) {
+           $ErrorMessageDetails = $Error[0].ErrorDetails.Message     
+           $ErrorMessageToken = $ErrorMessageDetails.Split('\"Message\": \"')[1]
+           $ErrorMessage = $ErrorMessageToken.Split(' - Operation ID')[0]
+           $ErrorMessage = $ErrorMessage.Replace(',','')
+           Write-Warning $ErrorMessage
+           $Modified = "No"
         }
-        catch {
-
-            if ($Error[0]) {
-
-                $ErrorMessageDetails = $Error[0].ErrorDetails.Message
-
-                $ErrorMessageToken = $ErrorMessageDetails.Split('\"Message\": \"')[1]
-
-                $ErrorMessage = $ErrorMessageToken.Split(' - Operation ID')[0]
-
-                $ErrorMessage = $ErrorMessage.Replace(',','')
-                
-                Write-Warning $ErrorMessage
-
-                $Modified = "No"
-
-            }
-            else {
-
-                Write-Host "Successfully configured the primary user for $DisplayName to $MostFrequentUserUpn"
-
-                $Modified = "Yes"
-                
-            }
-
+        else {
+          $ErrorMessage = "Successfully configured the primary user for $DisplayName to $MostFrequentUserUpn"
+          Write-Host $ErrorMessage
+          $Modified = "Yes"
         }
+     
     }
     # The most frequent user was not determined
     else 
