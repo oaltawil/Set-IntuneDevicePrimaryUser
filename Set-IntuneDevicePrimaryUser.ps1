@@ -184,7 +184,7 @@ if ($AllDevices.count -ge 1) {
     Write-Host "Installing the Microsoft Graph Beta Reports PowerShell Module"
 
     # Install the Beta version of the Microsoft Graph Reports PS module
-    Install-Module Microsoft.Graph.Beta.Reports -Repository PSGallery -Scope CurrentUser -AllowClobber -AllowPrerelease -AcceptLicense -SkipPublisherCheck -Force -Confirm:$false
+    Install-Module Microsoft.Graph.Beta.Reports -Repository PSGallery -Scope CurrentUser -AllowClobber -AcceptLicense -SkipPublisherCheck -Force -Confirm:$false
 
     Write-Host "`nRetrieving the last 30 days of Non-Interactive User Sign-In Events to Windows. This command will take up to 5 minutes to complete."
 
