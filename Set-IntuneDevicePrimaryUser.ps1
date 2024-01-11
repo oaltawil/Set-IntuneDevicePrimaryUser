@@ -179,17 +179,7 @@ if ($AllDevices.count -ge 1) {
     Write-Host "`nRetrieving the last 30 days of Interactive User Sign-In Events to Windows. This command will take up to 5 minutes to complete."
 
     # Retrieve all the "Interactive User" Sign-In events to Windows
-    $InteractiveUserSignInLogs = Get-MgAuditLogSignIn -Filter "appDisplayName eq 'Windows Sign In'"
-
-    Write-Host "Installing the Microsoft Graph Beta Reports PowerShell Module"
-
-    # Install the Beta version of the Microsoft Graph Reports PS module
-    Install-Module Microsoft.Graph.Beta.Reports -Repository PSGallery -Scope CurrentUser -AllowClobber -AcceptLicense -SkipPublisherCheck -Force -Confirm:$false
-
-    Write-Host "`nRetrieving the last 30 days of Non-Interactive User Sign-In Events to Windows. This command will take up to 5 minutes to complete."
-
-    # Retrieve all the "Non-Interactive User" Sign-In events to Windows
-    $NonInteractiveUserSignInLogs = Get-MgBetaAuditLogSignIn -Filter "signInEventTypes/any(t:t eq 'nonInteractiveUser') and appDisplayName eq 'Windows Sign In'"
+    $InteractiveUserSignInLogs = Get-MgAuditLogSignIn -Filter "appDisplayName eq 'Windows Sign In'" -All
 
 }
 
@@ -243,13 +233,6 @@ foreach ($Device in $AllDevices) {
 
     # Filter the Interactive User Sign-In Logs for the Azure AD Device Id
     $DeviceSignInLogs = $InteractiveUserSignInLogs | Where-Object {$_.DeviceDetail.DeviceId -eq $AzureADDeviceId}
-
-    # If there are no interactive sign-ins, then check the non-interactive ones
-    if (-not $DeviceSignInLogs) {
-
-        $DeviceSignInLogs = $NonInteractiveUserSignInLogs | Where-Object {$_.DeviceDetail.DeviceId -eq $AzureADDeviceId}
-       
-    }
 
     # Group the Sign-In Events by the User Principal Name and sort the groups by the number of elements they contain (Count)
     $MostFrequentUserUpn = $DeviceSignInLogs | Where-Object {$_.UserPrincipalName} | Group-Object -Property UserPrincipalName -NoElement | Sort-Object -Descending -Property Count | Select-Object -First 1 | ForEach-Object {$_.Name}
@@ -313,9 +296,11 @@ foreach ($Device in $AllDevices) {
     # The most frequent user is the same as the primary user
     if ($MostFrequentUserUpn -eq $PrimaryUserUpn) 
     {
-        $Modified = "No"
-
         $ErrorMessage = "No change required: The current primary user $PrimaryUserUpn is the most frequently-signed user to $DisplayName"
+
+        Write-Host $ErrorMessage
+        
+        $Modified = "No"
     }
     # The most frequent user and the primary user are different and the most frequent user has been determined
     elseif ($MostFrequentUserUpn -ne "Failed") 
@@ -331,17 +316,28 @@ foreach ($Device in $AllDevices) {
         Invoke-MgGraphRequest -Method $Method -Uri $Uri -Body $Body -ErrorAction SilentlyContinue
 
          if ($Error[0]) {
-           $ErrorMessageDetails = $Error[0].ErrorDetails.Message     
-           $ErrorMessageToken = $ErrorMessageDetails.Split('\"Message\": \"')[1]
-           $ErrorMessage = $ErrorMessageToken.Split(' - Operation ID')[0]
-           $ErrorMessage = $ErrorMessage.Replace(',','')
-           Write-Warning $ErrorMessage
-           $Modified = "No"
+
+            $ErrorMessageDetails = $Error[0].ErrorDetails.Message     
+
+            $ErrorMessageToken = $ErrorMessageDetails.Split('\"Message\": \"')[1]
+
+            $ErrorMessage = $ErrorMessageToken.Split(' - Operation ID')[0]
+
+            $ErrorMessage = $ErrorMessage.Replace(',','')
+
+            Write-Warning $ErrorMessage
+
+            $Modified = "No"
+        
         }
         else {
-          $ErrorMessage = "Successfully configured the primary user for $DisplayName to $MostFrequentUserUpn"
-          Write-Host $ErrorMessage
-          $Modified = "Yes"
+        
+            $ErrorMessage = "Successfully configured the primary user for $DisplayName to $MostFrequentUserUpn"
+
+            Write-Host $ErrorMessage
+          
+            $Modified = "Yes"
+
         }
      
     }
