@@ -53,7 +53,7 @@ param (
 $ErrorActionPreference = 'Stop'
 
 # Connect to Microsoft Graph and request the ability to read Audit logs and Users and modify Intune Devices
-Connect-MgGraph -Scopes AuditLog.Read.All, User.Read.All, DeviceManagementManagedDevices.ReadWrite.All, Group.Read.All, GroupMember.Read.All, Device.Read.All -NoWelcome -ClientTimeout 300
+Connect-MgGraph -Scopes AuditLog.Read.All, User.Read.All, DeviceManagementManagedDevices.ReadWrite.All, Group.Read.All, GroupMember.Read.All, Device.Read.All -NoWelcome
 
 #
 #
@@ -139,7 +139,7 @@ if ($GroupName) {
         $DisplayName = $DirectoryObject.AdditionalProperties.displayName
 
         # Retrieve the Intune managed device with matching Azure AD Device Id
-        $ManagedDevice = Get-MgDeviceManagementManagedDevice -Filter "AzureAdDeviceId eq '$AzureAdDeviceId'"
+        $ManagedDevice = Get-MgDeviceManagementManagedDevice -Filter "AzureAdDeviceId eq '$AzureAdDeviceId'" -ErrorAction SilentlyContinue
 
         # If the device is not managed by Intune, print a warning and skip to the next device
         if (-not $ManagedDevice) {
@@ -176,11 +176,11 @@ if ($GroupName) {
 # Retrieve the sign-in events only if there are devices to process
 if ($AllDevices.count -ge 1) {
 
-    Write-Host "`nRetrieving the last 30 days of Interactive User Sign-In Events to Windows. This command will take up to 5 minutes to complete."
+    Write-Host "`nRetrieving the last 30 days of Interactive User Sign-In Events to Windows. This command can take several minutes to several hours to complete depending on the size of your directory (users, devices, logins, etc.)."
 
     # Retrieve all the "Interactive User" Sign-In events to Windows
     $InteractiveUserSignInLogs = Get-MgAuditLogSignIn -Filter "appDisplayName eq 'Windows Sign In'" -All
-
+    
 }
 
 #
@@ -206,12 +206,12 @@ foreach ($Device in $AllDevices) {
     #
 
     # Retrieve the Intune managed device using its Intune Device Id
-    $ManagedDevice = Get-MgDeviceManagementManagedDevice -ManagedDeviceId $IntuneDeviceId
+    $ManagedDevice = Get-MgDeviceManagementManagedDevice -ManagedDeviceId $IntuneDeviceId -ErrorAction SilentlyContinue
 
     # If the device is not managed by Intune, print a warning and skip to the next device
     if (-not $ManagedDevice) {
 
-        $ErrorMessage = "Device '$DisplayName' is not managed Intune."
+        $ErrorMessage = "Device '$DisplayName' is not managed by Intune."
        
         Write-Warning $ErrorMessage
         
@@ -313,11 +313,14 @@ foreach ($Device in $AllDevices) {
 
         $Error.PSBase.Clear()
         
-        Invoke-MgGraphRequest -Method $Method -Uri $Uri -Body $Body -ErrorAction SilentlyContinue
+        try {
 
-         if ($Error[0]) {
+            Invoke-MgGraphRequest -Method $Method -Uri $Uri -Body $Body -ErrorAction SilentlyContinue
+        
+        }
+        catch {
 
-            $ErrorMessageDetails = $Error[0].ErrorDetails.Message     
+            $ErrorMessageDetails = $Error[0].ErrorDetails.Message
 
             $ErrorMessageToken = $ErrorMessageDetails.Split('\"Message\": \"')[1]
 
@@ -328,18 +331,20 @@ foreach ($Device in $AllDevices) {
             Write-Warning $ErrorMessage
 
             $Modified = "No"
-        
-        }
-        else {
-        
-            $ErrorMessage = "Successfully configured the primary user for $DisplayName to $MostFrequentUserUpn"
-
-            Write-Host $ErrorMessage
-          
-            $Modified = "Yes"
 
         }
-     
+        finally {
+
+            if (-not $Error[0]) {
+
+                $ErrorMessage = "Successfully configured the primary user for $DisplayName to $MostFrequentUserUpn"
+
+                Write-Host $ErrorMessage
+            
+                $Modified = "Yes"
+
+            }
+        }
     }
     # The most frequent user was not determined
     else 
